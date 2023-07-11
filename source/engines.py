@@ -18,11 +18,11 @@ def train_fn(
         model.train()
         running_loss = 0.0
         running_tgts, running_prds = [], []
-        for ecgs, tgts in tqdm(train_loaders["train"]):
+        for ecgs, tgts in tqdm.tqdm(train_loaders["train"]):
             ecgs, tgts = ecgs.cuda(), tgts.cuda()
 
             logits = model(ecgs)
-            loss = criterion(logits, tgts)
+            loss = F.binary_cross_entropy_with_logits(logits, tgts)
 
             loss.backward()
             optimizer.step(), optimizer.zero_grad()
@@ -44,11 +44,11 @@ def train_fn(
             model.eval()
             running_loss = 0.0
             running_tgts, running_prds = [], []
-            for ecgs, tgts in tqdm(train_loaders["val"]):
+            for ecgs, tgts in tqdm.tqdm(train_loaders["val"]):
                 ecgs, tgts = ecgs.cuda(), tgts.cuda()
 
                 logits = model(ecgs)
-                loss = criterion(logits, tgts)
+                loss = F.binary_cross_entropy_with_logits(logits, tgts)
 
                 running_loss = running_loss + loss.item()*ecgs.size(0)
                 tgts, prds = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() >= 0.5, 1.0, 0.0))
