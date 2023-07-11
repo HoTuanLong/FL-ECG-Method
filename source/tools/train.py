@@ -16,14 +16,14 @@ train_loaders = {
         ECGDataset(
             df_path = "../../datasets/PhysioNet/{}/csvs/train.csv".format(args.dataset), data_path = "../../datasets/PhysioNet/{}/ecgs".format(args.dataset), 
         ), 
-        num_workers = 8, batch_size = 224, 
+        num_workers = 8, batch_size = 80, 
         shuffle = True, 
     ), 
     "val":torch.utils.data.DataLoader(
         ECGDataset(
             df_path = "../../datasets/PhysioNet/{}/csvs/val.csv".format(args.dataset), data_path = "../../datasets/PhysioNet/{}/ecgs".format(args.dataset), 
         ), 
-        num_workers = 8, batch_size = 224, 
+        num_workers = 8, batch_size = 80, 
         shuffle = True, 
     ), 
 }

@@ -3,6 +3,8 @@ import warnings; warnings.filterwarnings("ignore")
 import pytorch_lightning as pl
 pl.seed_everything(23)
 
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
 import argparse
 import glob
 import scipy.io as sio
