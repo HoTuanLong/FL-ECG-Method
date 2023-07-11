@@ -21,6 +21,6 @@ class ECGDataset(torch.utils.data.Dataset):
         ecg = sequence.pad_sequences(ecg, 5000, "float64", 
             "post", "post", 
         )
-        ecg, tar = torch.tensor(ecg).float(), torch.tensor(row.values[-30:].astype("float64")).float()
+        ecg, tgt = torch.tensor(ecg).float(), torch.tensor(row.values[-30:].astype("float64")).float()
 
-        return ecg, tar
+        return ecg, tgt
