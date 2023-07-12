@@ -2,4 +2,4 @@
 /ckps/*/*
 
 **/__pycache__
-**/torchvision
+**/wandb

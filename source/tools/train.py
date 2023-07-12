@@ -39,11 +39,14 @@ scheduler = optim.lr_scheduler.CosineAnnealingLR(
     eta_min = 1e-4, T_max = 50, 
 )
 
+wandb.init(
+    project = "[fl-ecg] centralized", name = args.dataset, 
+)
 save_ckp_dir = "../../ckps/{}".format(args.dataset)
 if not os.path.exists(save_ckp_dir):
     os.makedirs(save_ckp_dir)
 train_fn(
-    train_loaders = train_loaders, num_epochs = 50, 
+    train_loaders = train_loaders, num_epochs = 80, 
     model = model, 
     optimizer = optimizer, 
     scheduler = scheduler, 

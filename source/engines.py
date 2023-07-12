@@ -31,14 +31,16 @@ def train_fn(
             tgts, prds = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() >= 0.5, 1.0, 0.0))
             running_tgts.extend(tgts), running_prds.extend(prds)
 
-        epoch_loss, epoch_f1 = running_loss/len(train_loaders["train"].dataset), metrics.f1_score(
+        train_loss, train_f1 = running_loss/len(train_loaders["train"].dataset), metrics.f1_score(
             running_tgts, running_prds
             , average = "macro"
         )
-        print("{:<5} - loss:{:.4f}, f1:{:.4f}".format(
-            "train", 
-            epoch_loss, epoch_f1
-        ))
+        wandb.log(
+            {
+                "train_loss":train_loss, "train_f1":train_f1
+            }, 
+            step = epoch, 
+        )
 
         with torch.no_grad():
             model.eval()
@@ -54,16 +56,18 @@ def train_fn(
                 tgts, prds = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() >= 0.5, 1.0, 0.0))
                 running_tgts.extend(tgts), running_prds.extend(prds)
 
-        epoch_loss, epoch_f1 = running_loss/len(train_loaders["val"].dataset), metrics.f1_score(
+        val_loss, val_f1 = running_loss/len(train_loaders["val"].dataset), metrics.f1_score(
             running_tgts, running_prds
             , average = "macro"
         )
-        print("{:<5} - loss:{:.4f}, f1:{:.4f}".format(
-            "val", 
-            epoch_loss, epoch_f1
-        ))
-        if epoch_f1 > best_f1:
-            best_f1 = epoch_f1; torch.save(
+        wandb.log(
+            {
+                "val_loss":val_loss, "val_f1":val_f1
+            }, 
+            step = epoch, 
+        )
+        if val_f1 > best_f1:
+            best_f1 = val_f1; torch.save(
                 model, 
                 "{}/best.ptl".format(save_ckp_dir), 
             )
