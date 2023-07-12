@@ -46,7 +46,7 @@ save_ckp_dir = "../../ckps/{}".format(args.dataset)
 if not os.path.exists(save_ckp_dir):
     os.makedirs(save_ckp_dir)
 train_fn(
-    train_loaders = train_loaders, num_epochs = 80, 
+    train_loaders = train_loaders, num_epochs = 60, 
     model = model, 
     optimizer = optimizer, 
     scheduler = scheduler, 
