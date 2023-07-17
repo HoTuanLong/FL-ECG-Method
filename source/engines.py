@@ -1,27 +1,25 @@
 import os, sys
 from libs import *
 
-def train_fn(
-    train_loaders, num_epochs, 
-    model, 
+def client_fit_fn(
+    fit_loaders, client_num_epochs, 
+    client_model, 
     optimizer, 
-    scheduler, 
-    save_ckp_dir = "./", 
 ):
     print("\nStart Training ...\n" + " = "*16)
-    model = model.cuda()
+    client_model = client_model.cuda()
+    client_metrics = {}
 
-    best_f1 = 0.0
-    for epoch in range(1, num_epochs + 1):
-        print("epoch {}/{}".format(epoch, num_epochs) + "\n" + " - "*16)
+    for epoch in range(1, client_num_epochs + 1):
+        print("epoch {}/{}".format(epoch, client_num_epochs) + "\n" + " - "*16)
 
-        model.train()
+        client_model.train()
         running_loss = 0.0
         running_tgts, running_prds = [], []
-        for ecgs, tgts in tqdm.tqdm(train_loaders["train"]):
+        for ecgs, tgts in tqdm.tqdm(fit_loaders["fit"]):
             ecgs, tgts = ecgs.cuda(), tgts.cuda()
 
-            logits = model(ecgs)
+            logits = client_model(ecgs)
             loss = F.binary_cross_entropy_with_logits(logits, tgts)
 
             loss.backward()
@@ -31,65 +29,61 @@ def train_fn(
             tgts, prds = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() >= 0.5, 1.0, 0.0))
             running_tgts.extend(tgts), running_prds.extend(prds)
 
-        train_loss, train_f1 = running_loss/len(train_loaders["train"].dataset), metrics.f1_score(
+        fit_loss, fit_f1 = running_loss/len(fit_loaders["fit"].dataset), metrics.f1_score(
             running_tgts, running_prds
             , average = "macro"
         )
         wandb.log(
             {
-                "train_loss":train_loss, "train_f1":train_f1
+                "fit_loss":fit_loss, "fit_f1":fit_f1
             }, 
             step = epoch, 
         )
+        client_metrics["fit_loss"], client_metrics["fit_f1"] = fit_loss, fit_f1
 
         with torch.no_grad():
-            model.eval()
+            client_model.eval()
             running_loss = 0.0
             running_tgts, running_prds = [], []
-            for ecgs, tgts in tqdm.tqdm(train_loaders["val"]):
+            for ecgs, tgts in tqdm.tqdm(fit_loaders["evaluate"]):
                 ecgs, tgts = ecgs.cuda(), tgts.cuda()
 
-                logits = model(ecgs)
+                logits = client_model(ecgs)
                 loss = F.binary_cross_entropy_with_logits(logits, tgts)
 
                 running_loss = running_loss + loss.item()*ecgs.size(0)
                 tgts, prds = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() >= 0.5, 1.0, 0.0))
                 running_tgts.extend(tgts), running_prds.extend(prds)
 
-        val_loss, val_f1 = running_loss/len(train_loaders["val"].dataset), metrics.f1_score(
+        evaluate_loss, evaluate_f1 = running_loss/len(fit_loaders["evaluate"].dataset), metrics.f1_score(
             running_tgts, running_prds
             , average = "macro"
         )
         wandb.log(
             {
-                "val_loss":val_loss, "val_f1":val_f1
+                "evaluate_loss":evaluate_loss, "evaluate_f1":evaluate_f1
             }, 
             step = epoch, 
         )
-        if val_f1 > best_f1:
-            best_f1 = val_f1; torch.save(
-                model, 
-                "{}/best.ptl".format(save_ckp_dir), 
-            )
+        client_metrics["evaluate_loss"], client_metrics["evaluate_f1"] = evaluate_loss, evaluate_f1
 
-        if (scheduler is not None) and (not epoch > scheduler.T_max):
-            scheduler.step()
+    return client_metrics
 
-def test_fn(
+def server_test_fn(
     test_loader, 
-    model, 
+    server_model, 
 ):
     print("\nStart Testing ...\n" + " = "*16)
-    model = model.cuda()
+    server_model = server_model.cuda()
 
     with torch.no_grad():
-        model.eval()
+        server_model.eval()
         running_loss = 0.0
         running_tgts, running_prds = [], []
         for ecgs, tgts in tqdm.tqdm(test_loader):
             ecgs, tgts = ecgs.cuda(), tgts.cuda()
 
-            logits = model(ecgs)
+            logits = server_model(ecgs)
             loss = F.binary_cross_entropy_with_logits(logits, tgts)
 
             running_loss = running_loss + loss.item()*ecgs.size(0)
