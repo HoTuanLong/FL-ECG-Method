@@ -4,9 +4,7 @@ sys.path.append(__dir__), sys.path.append(os.path.abspath(os.path.join(__dir__, 
 from libs import *
 
 from strategies import *
-from data import ECGDataset
 from nets.nets import SEResNet18
-from engines import client_fit_fn
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
