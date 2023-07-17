@@ -74,3 +74,32 @@ def train_fn(
 
         if (scheduler is not None) and (not epoch > scheduler.T_max):
             scheduler.step()
+
+def test_fn(
+    test_loader, 
+    model, 
+):
+    print("\nStart Testing ...\n" + " = "*16)
+    model = model.cuda()
+
+    with torch.no_grad():
+        model.eval()
+        running_loss = 0.0
+        running_tgts, running_prds = [], []
+        for ecgs, tgts in tqdm.tqdm(test_loader):
+            ecgs, tgts = ecgs.cuda(), tgts.cuda()
+
+            logits = model(ecgs)
+            loss = F.binary_cross_entropy_with_logits(logits, tgts)
+
+            running_loss = running_loss + loss.item()*ecgs.size(0)
+            tgts, prds = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() >= 0.5, 1.0, 0.0))
+            running_tgts.extend(tgts), running_prds.extend(prds)
+
+    test_loss, test_f1 = running_loss/len(test_loader.dataset), metrics.f1_score(
+        running_tgts, running_prds
+        , average = "macro"
+    )
+    print(
+        "test_loss:{:.4f}".format(test_loss), "test_f1:{:.4f}".format(test_f1)
+    )
