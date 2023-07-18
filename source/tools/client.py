@@ -38,6 +38,7 @@ class Client(fl.client.NumPyClient):
             collections.OrderedDict({key:torch.tensor(value) for key, value in zip(keys, parameters)}), 
             strict = False, 
         )
+
     def fit(self, 
         parameters, 
         config, 
@@ -45,27 +46,24 @@ class Client(fl.client.NumPyClient):
         self.set_parameters(parameters)
         self.client_model.train()
 
-        self.scheduler.step()
-        results = client_fit_fn(
+        client_results = client_fit_fn(
             self.fit_loaders, self.client_num_epochs, 
             self.client_model, 
             self.optimizer, 
         )
+        self.scheduler.step()
         self.round += 1
+
         wandb.log(
-            {
-                "fit_loss":results["fit_loss"], "fit_f1":results["fit_f1"]
-            }, 
+            {"fit_loss":client_results["fit_loss"], "fit_f1":client_results["fit_f1"]}, 
             step = self.round, 
         )
         wandb.log(
-            {
-                "evaluate_loss":results["evaluate_loss"], "evaluate_f1":results["evaluate_f1"]
-            }, 
+            {"evaluate_loss":client_results["evaluate_loss"], "evaluate_f1":client_results["evaluate_f1"]}, 
             step = self.round, 
         )
 
-        return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), results
+        return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), client_results
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
