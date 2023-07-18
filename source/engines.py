@@ -33,11 +33,8 @@ def client_fit_fn(
             running_tgts, running_prds
             , average = "macro"
         )
-        wandb.log(
-            {
-                "fit_loss":fit_loss, "fit_f1":fit_f1
-            }, 
-            step = epoch, 
+        print(
+            "fit_loss:{:.4f}".format(fit_loss), "test_f1:{:.4f}".format(fit_f1)
         )
         client_metrics["fit_loss"], client_metrics["fit_f1"] = fit_loss, fit_f1
 
@@ -59,11 +56,8 @@ def client_fit_fn(
             running_tgts, running_prds
             , average = "macro"
         )
-        wandb.log(
-            {
-                "evaluate_loss":evaluate_loss, "evaluate_f1":evaluate_f1
-            }, 
-            step = epoch, 
+        print(
+            "evaluate_loss:{:.4f}".format(evaluate_loss), "test_f1:{:.4f}".format(evaluate_f1)
         )
         client_metrics["evaluate_loss"], client_metrics["evaluate_f1"] = evaluate_loss, evaluate_f1
 
