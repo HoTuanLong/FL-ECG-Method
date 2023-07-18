@@ -56,13 +56,13 @@ class Client(fl.client.NumPyClient):
             {
                 "fit_loss":results["fit_loss"], "fit_f1":results["fit_f1"]
             }, 
-            step = epoch, 
+            step = self.round, 
         )
         wandb.log(
             {
                 "evaluate_loss":results["evaluate_loss"], "evaluate_f1":results["evaluate_f1"]
             }, 
-            step = epoch, 
+            step = self.round, 
         )
 
         return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), results
