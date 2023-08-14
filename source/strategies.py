@@ -2,10 +2,10 @@ import os, sys
 from libs import *
 
 def metrics_aggregation_fn(results):
-    evaluate_losses, evaluate_accuracies = [result["evaluate_loss"]*num_examples for num_examples, result in results], [result["evaluate_accuracy"]*num_examples for num_examples, result in results]
+    evaluate_losses, evaluate_f1s = [result["evaluate_loss"]*num_examples for num_examples, result in results], [result["evaluate_f1"]*num_examples for num_examples, result in results]
     total_examples = sum([num_examples for num_examples, result in results])
     aggregated_metrics = {
-        "evaluate_loss":sum(evaluate_losses)/total_examples, "evaluate_accuracy":sum(evaluate_accuracies)/total_examples
+        "evaluate_loss":sum(evaluate_losses)/total_examples, "evaluate_f1":sum(evaluate_f1s)/total_examples
     }
 
     return aggregated_metrics
@@ -20,7 +20,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
         self.save_ckp_dir = save_ckp_dir
         super().__init__(*args, **kwargs, )
 
-        self.aggregated_accuracy = 0.0
+        self.aggregated_f1 = 0.0
 
     def aggregate_fit(self, 
         server_round, 
@@ -38,12 +38,12 @@ class FedAvg(flwr.server.strategy.FedAvg):
             collections.OrderedDict({key:torch.tensor(value) for key, value in zip(aggregated_keys, aggregated_parameters)}), 
             strict = False, 
         )
-        if aggregated_metrics["evaluate_accuracy"] > self.aggregated_accuracy:
+        if aggregated_metrics["evaluate_f1"] > self.aggregated_f1:
             torch.save(
                 self.server_model, 
                 "{}/server-best.ptl".format(self.save_ckp_dir), 
             )
-            self.aggregated_accuracy = aggregated_metrics["evaluate_accuracy"]
+            self.aggregated_f1 = aggregated_metrics["evaluate_f1"]
 
         aggregated_parameters = [value.cpu().numpy() for key, value in self.server_model.state_dict().items()]
         aggregated_parameters = flwr.common.ndarrays_to_parameters(aggregated_parameters)

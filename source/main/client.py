@@ -47,10 +47,10 @@ class Client(flwr.client.NumPyClient):
             self.client_optim, 
             device = torch.device("cuda"), 
         )
-        torch.save(
-            self.client_model, 
-            "{}/client-last.ptl".format(self.save_ckp_dir), 
-        )
+        # torch.save(
+        #     self.client_model, 
+        #     "{}/client-last.ptl".format(self.save_ckp_dir), 
+        # )
 
         return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), results
 
@@ -69,14 +69,14 @@ if __name__ == "__main__":
             ECGDataset(
                 df_path = "../../datasets/{}/{}/csvs/fit.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
             ), 
-            num_workers = 8, batch_size = 80, 
+            num_workers = 0, batch_size = 80, 
             shuffle = True, 
         ), 
         "evaluate":torch.utils.data.DataLoader(
             ECGDataset(
                 df_path = "../../datasets/{}/{}/csvs/evaluate.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
             ), 
-            num_workers = 8, batch_size = 80, 
+            num_workers = 0, batch_size = 80, 
             shuffle = True, 
         ), 
     }
