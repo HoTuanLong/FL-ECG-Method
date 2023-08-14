@@ -1,7 +1,7 @@
 cd ../main/
 
 export CUDA_VISIBLE_DEVICES=0
-nohup python server.py --server_port=9999 --dataset="PhysioNet" --num_rounds=2 --num_epochs=2 > ../../ckps/PhysioNet/server.out &
+nohup python server.py --server_port=9999 --dataset="PhysioNet" > ../../ckps/PhysioNet/server.out &
 sleep 30
 export CUDA_VISIBLE_DEVICES=0
 nohup python client.py --server_port=9999 --dataset="PhysioNet" --subdataset="CHA" &

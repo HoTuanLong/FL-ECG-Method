@@ -47,10 +47,10 @@ class Client(flwr.client.NumPyClient):
             self.client_optim, 
             device = torch.device("cuda"), 
         )
-        # torch.save(
-        #     self.client_model, 
-        #     "{}/client-last.ptl".format(self.save_ckp_dir), 
-        # )
+        torch.save(
+            self.client_model, 
+            "{}/client-last.ptl".format(self.save_ckp_dir), 
+        )
 
         return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), results
 
