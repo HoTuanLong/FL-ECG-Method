@@ -1,15 +1,15 @@
 import os, sys
 from libs import *
 
-from .bblocks import *
+from .blocks import *
 
-class SEResNet18(nn.Module):
+class ResNet18(nn.Module):
     def __init__(self, 
         base_channels = 64, 
         num_classes = 2, 
     ):
-        super(SEResNet18, self).__init__()
-        self.bblock = SEResBlock
+        super(ResNet18, self).__init__()
+        self.bblock = ResBlock
         self.stem = nn.Sequential(
             nn.Conv1d(
                 12, base_channels, 
@@ -22,19 +22,19 @@ class SEResNet18(nn.Module):
             ), 
         )
 
-        self.stage_0 = nn.Sequential(
+        self.stage_1 = nn.Sequential(
             self.bblock(base_channels*1), 
             self.bblock(base_channels*1), 
         )
-        self.stage_1 = nn.Sequential(
+        self.stage_2 = nn.Sequential(
             self.bblock(base_channels*1, downsample = True), 
             self.bblock(base_channels*2), 
         )
-        self.stage_2 = nn.Sequential(
+        self.stage_3 = nn.Sequential(
             self.bblock(base_channels*2, downsample = True), 
             self.bblock(base_channels*4), 
         )
-        self.stage_3 = nn.Sequential(
+        self.stage_4 = nn.Sequential(
             self.bblock(base_channels*4, downsample = True), 
             self.bblock(base_channels*8), 
         )
@@ -52,12 +52,12 @@ class SEResNet18(nn.Module):
     ):
         output = self.stem(input)
 
-        output = self.stage_0(output)
         output = self.stage_1(output)
         output = self.stage_2(output)
         output = self.stage_3(output)
+        output = self.stage_4(output)
 
-        output = self.pool(output)
-        output = self.classifier(output.squeeze(-1))
+        output = self.pool(output).squeeze(-1)
+        output = self.classifier(output)
 
         return output

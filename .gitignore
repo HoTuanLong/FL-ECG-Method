@@ -1,5 +1,6 @@
 /datasets
-/ckps
+**/*.pt*
+**/*.out
+**/*.zip
 
 **/__pycache__
-**/wandb

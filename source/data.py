@@ -3,9 +3,9 @@ from libs import *
 
 class ECGDataset(torch.utils.data.Dataset):
     def __init__(self, 
-        df_path, data_path, 
+        df_path, data_dir, 
     ):
-        self.df_path, self.data_path,  = df_path, data_path, 
+        self.df_path, self.data_dir,  = df_path, data_dir, 
         self.df = pd.read_csv(self.df_path)
 
     def __len__(self, 
@@ -16,11 +16,11 @@ class ECGDataset(torch.utils.data.Dataset):
         index, 
     ):
         row = self.df.iloc[index]
+        tgt = row.values[-30:].astype("float64")
 
-        ecg = sio.loadmat("{}/{}.mat".format(self.data_path, row["Id"]))["val"]
+        ecg = sio.loadmat("{}/{}.mat".format(self.data_dir, row["Id"]))["val"]
         ecg = sequence.pad_sequences(ecg, 5000, "float64", 
             "post", "post", 
         )
-        ecg, tgt = torch.tensor(ecg).float(), torch.tensor(row.values[-30:].astype("float64")).float()
 
         return ecg, tgt
