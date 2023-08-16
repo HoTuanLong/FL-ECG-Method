@@ -22,7 +22,7 @@ class Client(flwr.client.NumPyClient):
 
         self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
             client_optim, 
-            eta_min = 1e-4, T_max = int(0.8*client_optim.num_rounds), 
+            eta_min = 1e-4, T_max = client_optim.num_rounds, 
         )
 
     def get_parameters(self, 
