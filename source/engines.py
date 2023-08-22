@@ -49,29 +49,29 @@ def client_fit_fn(
         "evaluate_loss":evaluate_loss, "evaluate_f1":evaluate_f1
     }
 
-def server_test_fn(
-    test_loader, 
-    server_model, 
+def client_test_fn(
+    test_loaders, 
+    client_model, 
     device = torch.device("cpu"), 
 ):
-    print("\nStart Server Testing ...\n" + " = "*16)
-    server_model = server_model.to(device)
+    print("\nStart Client Testing ...\n" + " = "*16)
+    client_model = client_model.to(device)
 
     with torch.no_grad():
-        server_model.eval()
+        client_model.eval()
         running_loss = 0.0
         running_tgts, running_predis,  = [], [], 
-        for ecgs, tgts in tqdm.tqdm(test_loader):
+        for ecgs, tgts in tqdm.tqdm(test_loaders["test"]):
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
-            logits = server_model(ecgs)
+            logits = client_model(ecgs)
             loss = F.binary_cross_entropy_with_logits(logits, tgts)
 
             running_loss = running_loss + loss.item()*ecgs.size(0)
             tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() > 0.5, 1.0, 0.0))
             running_tgts.extend(tgts), running_predis.extend(predis), 
 
-    test_loss, test_f1 = running_loss/len(test_loader.dataset), metrics.f1_score(
+    test_loss, test_f1 = running_loss/len(test_loaders["test"].dataset), metrics.f1_score(
         running_tgts, running_predis, 
         average = "macro", 
     )
@@ -79,7 +79,7 @@ def server_test_fn(
         test_loss, test_f1
     ))
 
-    print("\nFinish Server Testing ...\n" + " = "*16)
+    print("\nFinish Client Testing ...\n" + " = "*16)
     return {
         "test_loss":test_loss, "test_f1":test_f1
     }
