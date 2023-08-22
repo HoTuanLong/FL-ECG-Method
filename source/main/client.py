@@ -25,6 +25,8 @@ class Client(flwr.client.NumPyClient):
             eta_min = 1e-4, T_max = client_optim.num_rounds, 
         )
 
+        self.evaluate_loss, self.evaluate_f1 = 0.0, 0.0
+
     def get_parameters(self, 
         config, 
     ):
@@ -47,10 +49,13 @@ class Client(flwr.client.NumPyClient):
             self.client_optim, 
             device = torch.device("cuda"), 
         )
-        torch.save(
-            self.client_model, 
-            "{}/client-last.ptl".format(self.save_ckp_dir), 
-        )
+        evaluate_loss, evaluate_f1 = results["evaluate_loss"], results["evaluate_f1"]
+        if evaluate_f1 > self.evaluate_f1:
+            torch.save(
+                self.client_model, 
+                "{}/client-best.ptl".format(self.save_ckp_dir), 
+            )
+            self.evaluate_f1 = evaluate_f1
 
         return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), results
 
@@ -61,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_classes", type = int, default = 30)
     parser.add_argument("--num_clients", type = int, default = 4)
     parser.add_argument("--num_rounds", type = int, default = 500)
-    parser.add_argument("--num_epochs", type = int, default = 3)
+    parser.add_argument("--num_epochs", type = int, default = 2)
     args = parser.parse_args()
 
     fit_loaders = {
