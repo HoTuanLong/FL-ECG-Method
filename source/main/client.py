@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_classes", type = int, default = 30)
     parser.add_argument("--num_clients", type = int, default = 4)
     parser.add_argument("--num_rounds", type = int, default = 500)
-    parser.add_argument("--num_epochs", type = int, default = 2)
+    parser.add_argument("--num_epochs", type = int, default = 1)
     args = parser.parse_args()
 
     fit_loaders = {
