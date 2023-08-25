@@ -10,7 +10,7 @@ from engines import client_test_fn
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--server_address", type = str, default = "127.0.0.1"), parser.add_argument("--server_port", type = int, default = 9999)
+    parser.add_argument("--server_address", type = str, default = "127.0.0.1"), parser.add_argument("--server_port", type = int, default = 9990)
     parser.add_argument("--dataset", type = str, default = "PhysioNet"), parser.add_argument("--subdataset", type = str)
     parser.add_argument("--num_classes", type = int, default = 30)
     parser.add_argument("--num_clients", type = int, default = 4)
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         test_loaders = {
             "test":torch.utils.data.DataLoader(
                 ECGDataset(
-                    df_path = "../../datasets/{}/{}/csvs/test.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
+                    df_path = "../../datasets/{}/{}/csvs/test_2.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
                 ), 
                 num_workers = 0, batch_size = 80, 
                 shuffle = True, 

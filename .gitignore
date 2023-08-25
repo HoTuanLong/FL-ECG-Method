@@ -4,3 +4,6 @@
 **/*.zip
 
 **/__pycache__
+source/main/wandb/
+nvidia_smi_output.txt
+source/runs/nvidia_smi_output.txt
