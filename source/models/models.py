@@ -40,11 +40,15 @@ class ResNet18(nn.Module):
         )
 
         self.pool = nn.AdaptiveAvgPool1d(1)
-        self.classifier = nn.Sequential(
-            nn.Dropout(0.2), 
-            nn.Linear(
-                base_channels*8, num_classes, 
-            ), 
+        self.classifiers = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Dropout(0.2), 
+                    nn.Linear(
+                        base_channels*8, 1, 
+                    ), 
+                ) for i in range(num_classes)
+            ]
         )
 
     def forward(self, 
@@ -58,6 +62,11 @@ class ResNet18(nn.Module):
         output = self.stage_4(output)
 
         output = self.pool(output).squeeze(-1)
-        output = self.classifier(output)
+        output = torch.stack(
+            [
+                self.classifiers[i](output) for i in range(len(self.classifiers))
+            ], 
+            dim = 1, 
+        ).squeeze(-1)
 
         return output
