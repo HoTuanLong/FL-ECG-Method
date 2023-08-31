@@ -34,14 +34,12 @@ class Client(flwr.client.NumPyClient):
         df = pd.read_csv("../../datasets/PhysioNet/train_num_samples.csv")
         metrics_1 = df[df['Dataset'] == dataset_1].values.tolist()[0][1:]
         metrics_2 = df[df['Dataset'] == dataset_2].values.tolist()[0][1:]
-        res = 0
-        for i in range(len(metrics_1)):
-            one_hot = 0
-            if metrics_1[i] > 0 and metrics_2[i] > 0:
-                one_hot = 1
-            res += (metrics_1[i] + metrics_2[i]) * one_hot
-        res /= (sum(metrics_1) + sum(metrics_2))
-        return res
+        
+        metrics_1 = np.array(metrics_1)
+        metrics_2 = np.array(metrics_2)
+        cosine = np.dot(metrics_1, metrics_2)/(np.linalg.norm(metrics_1)*np.linalg.norm(metrics_2))
+        
+        return cosine
         
     # Do the aggragate metrics for each clients' weight
     def aggregate(self) -> NDArrays:
