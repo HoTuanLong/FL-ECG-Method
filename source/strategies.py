@@ -13,6 +13,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
         server_round, 
         results, failures, 
     ):
+        self.server_round = server_round
         aggregated_parameters = super().aggregate_fit(
             server_round, 
             results, failures, 

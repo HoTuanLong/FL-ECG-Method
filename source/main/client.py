@@ -142,7 +142,7 @@ if __name__ == "__main__":
     wandb.init(
         entity = args.wandb_entity, 
         project = "[fl-ecg] federated", 
-        name = f"{args.subdataset} - method_v2", 
+        name = f"{args.subdataset} - method_v3", 
         mode = "offline"
     )
 
