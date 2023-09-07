@@ -4,3 +4,5 @@
 **/*.zip
 
 **/__pycache__
+ckps/
+temp_models/
