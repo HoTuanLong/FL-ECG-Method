@@ -48,10 +48,9 @@ class Client(flwr.client.NumPyClient):
     #return the number of samples of each dataset
     def calculate_num_samples(self, dataset):
         
-        df = pd.read_csv("../../datasets/PhysioNet/train_num_samples.csv")
-        metrics = df[df['Dataset'] == dataset].values.tolist()[0][1:]
-        metrics = np.array(metrics)
-        return np.sum(metrics)
+        df = pd.read_csv("../../datasets/PhysioNet/num_samples.csv")
+        metrics = df[df['Dataset'] == dataset].values.tolist()[0][1]
+        return metrics
     
     def num_samples_class(self, dataset, class_):
         df = pd.read_csv("../../datasets/PhysioNet/train_num_samples.csv")
@@ -96,6 +95,7 @@ class Client(flwr.client.NumPyClient):
                         keys[key].append(model_source[key] * self.calculate_num_samples(weight_name.split(".")[-2]))
         print("list_alpha:", list_alpha)
         print("sample:", sample)
+        print("list_num_samples:", list_num_samples)
 
 
         for i in range(self.num_classes):
