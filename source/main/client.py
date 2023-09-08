@@ -30,6 +30,8 @@ class Client(flwr.client.NumPyClient):
 
         self.evaluate_loss, self.evaluate_f1 = 0.0, 0.0
     
+    
+    #calculate the alpha for each weight by using cosine
     def calculate_alpha(self, dataset_1, dataset_2):
         df = pd.read_csv("../../datasets/PhysioNet/train_num_samples.csv")
         metrics_1 = df[df['Dataset'] == dataset_1].values.tolist()[0][1:]
@@ -41,38 +43,33 @@ class Client(flwr.client.NumPyClient):
         
         return cosine
     
+    #return the number of samples of each dataset
     def calculate_num_samples(self, dataset):
+        
         df = pd.read_csv("../../datasets/PhysioNet/train_num_samples.csv")
         metrics = df[df['Dataset'] == dataset].values.tolist()[0][1:]
         metrics = np.array(metrics)
         return np.sum(metrics)
-        
-    # def calculate_alpha(self, dataset_1, dataset_2):
-    #     df = pd.read_csv("../../datasets/PhysioNet/train_num_samples.csv")
-    #     metrics_1 = df[df['Dataset'] == dataset_1].values.tolist()[0][1:]
-    #     metrics_2 = df[df['Dataset'] == dataset_2].values.tolist()[0][1:]
-    #     res = 0
-    #     for i in range(len(metrics_1)):
-    #         one_hot = 0
-    #         if metrics_1[i] > 0 and metrics_2[i] > 0:
-    #             one_hot = 1
-    #         res += (metrics_1[i] + metrics_2[i]) * one_hot
-    #     res /= (sum(metrics_1) + sum(metrics_2))
-    #     return res
         
     # Do the aggragate metrics for each clients' weight
     def aggregate(self) -> NDArrays:
         target_weight = torch.load("../../temp_models/{}.ptl".format(self.dataset))
         other_weights_name = [f for f in os.listdir("../../temp_models") if os.path.isfile(os.path.join("../../temp_models", f))]
         model_target = target_weight.state_dict()
+        keys = {key: [] for key in model_target}
+        list_num_samples = []
         print(len(other_weights_name))
         list_alpha = []
         for weight_name in other_weights_name:
             if weight_name.split(".")[-2] == self.dataset:
                 list_alpha.append(1)
+                list_num_samples.append(self.calculate_num_samples(self.dataset))
+                for k in model_target:
+                    keys[k].append(model_target[k] * self.calculate_num_samples(self.dataset))
                 continue
             else:
                 print("CHECK")
+                list_num_samples.append(self.calculate_num_samples(weight_name.split(".")[-2]))
                 # weight = torch.load("../../temp_models/{}".format(weight_name))
                 # for (name1, params1), (name2, params2) in zip(target_weight.named_parameters(), weight.named_parameters()):
                 print(weight_name.split(".")[-2])
@@ -84,14 +81,16 @@ class Client(flwr.client.NumPyClient):
                     if "classifier" in key:
                         model_target[key] = model_target[key] + model_source[key] * alpha
                     else:
-                        model_target[key] = model_target[key] + model_source[key]
-        # case 2: Divided by the total of alpha values
+                        # model_target[key] = model_target[key] + model_source[key]
+                        keys[key].append(model_source[key] * self.calculate_num_samples(weight_name.split(".")[-2]))
         print("list_alpha:", list_alpha)
         for key in model_target:
             if "classifier" in key:
                 model_target[key] = model_target[key] / sum(list_alpha)
             else:
-                model_target[key] = model_target[key] / len(other_weights_name)
+                # model_target[key] = model_target[key] / len(other_weights_name)
+                keys[key] = sum(keys[key])/sum(list_num_samples)
+                model_target[key] = keys[key]
         return model_target
 
     def get_parameters(self, 
