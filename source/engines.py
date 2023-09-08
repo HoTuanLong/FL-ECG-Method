@@ -17,7 +17,7 @@ def client_fit_fn(
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
             logits = client_model(ecgs)
-            loss = F.binary_cross_entropy_with_logits(logits, tgts)
+            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in 30])
 
             loss.backward()
             client_optim.step(), client_optim.zero_grad()
@@ -30,7 +30,7 @@ def client_fit_fn(
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
             logits = client_model(ecgs)
-            loss = F.binary_cross_entropy_with_logits(logits, tgts)
+            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in 30])
 
             running_loss = running_loss + loss.item()*ecgs.size(0)
             tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() > 0.5, 1.0, 0.0))
@@ -65,7 +65,7 @@ def client_test_fn(
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
             logits = client_model(ecgs)
-            loss = F.binary_cross_entropy_with_logits(logits, tgts)
+            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in 30])
 
             running_loss = running_loss + loss.item()*ecgs.size(0)
             tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() > 0.5, 1.0, 0.0))
