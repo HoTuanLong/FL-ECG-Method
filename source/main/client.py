@@ -56,68 +56,8 @@ class Client(flwr.client.NumPyClient):
         df = pd.read_csv("../../datasets/PhysioNet/train_num_samples.csv")
         metrics = df[df['Dataset'] == dataset].values.tolist()[0][1:]
         return metrics[class_]
-        
-    # Do the aggragate metrics for each clients' weight
-    # def aggregate(self) -> NDArrays:
-    #     target_weight = torch.load("../../temp_models/{}.ptl".format(self.dataset))
-    #     other_weights_name = [f for f in os.listdir("../../temp_models") if os.path.isfile(os.path.join("../../temp_models", f))]
-    #     model_target = target_weight.state_dict()
-    #     keys = {key: [] for key in model_target}
-            
-    #     list_num_samples = []
-    #     sample = {i: 0 for i in range(self.num_classes)}        
-    #     list_alpha = []
-    #     for weight_name in other_weights_name:
-    #         if weight_name.split(".")[-2] == self.dataset:
-    #             list_alpha.append(1)
-    #             print(f"Data: {self.dataset} - {self.calculate_num_samples(self.dataset)}")
-    #             list_num_samples.append(self.calculate_num_samples(self.dataset))
-    #             for i in range(self.num_classes):
-    #                 print(f"Data: {self.dataset} - {self.num_samples_class(self.dataset, i)}")
-    #                 keys[f"classifiers.{i}.1.weight"].append(model_target[f"classifiers.{i}.1.weight"] * self.num_samples_class(self.dataset, i)) 
-    #                 keys[f"classifiers.{i}.1.bias"].append(model_target[f"classifiers.{i}.1.bias"] * self.num_samples_class(self.dataset, i)) 
-    #                 sample[i] += self.num_samples_class(self.dataset, i)
-                
-    #             for k in model_target:
-    #                 if "classifiers" not in k:
-    #                     keys[k].append(model_target[k] * self.calculate_num_samples(self.dataset))
-    #         else:
-    #             # print(f"Data: {weight_name.split(".")[-2]} - {self.calculate_num_samples(weight_name.split(".")[-2])}")
-    #             list_num_samples.append(self.calculate_num_samples(weight_name.split(".")[-2]))
-    #             alpha = self.calculate_alpha(weight_name.split(".")[-2], self.dataset)
-    #             list_alpha.append(alpha)
-    #             model_source = torch.load("../../temp_models/{}".format(weight_name)).state_dict()
-    #             for i in range(self.num_classes):
-    #                 # print(f"Data: {weight_name.split(".")[-2]} - {self.num_samples_class(weight_name.split(".")[-2], i)}")
-    #                 keys[f"classifiers.{i}.1.weight"].append(model_source[f"classifiers.{i}.1.weight"] * self.num_samples_class(weight_name.split(".")[-2], i)) 
-    #                 keys[f"classifiers.{i}.1.bias"].append(model_source[f"classifiers.{i}.1.bias"] * self.num_samples_class(weight_name.split(".")[-2], i)) 
-    #                 sample[i] += self.num_samples_class(weight_name.split(".")[-2], i)
-    #                         # model_target[key] = model_target[key] + model_source[key] * alpha
-    #             for key in model_target:
-    #                 if "classifiers" not in key:
-    #                     # model_target[key] = model_target[key] + model_source[key]
-    #                     keys[key].append(model_source[key] * self.calculate_num_samples(weight_name.split(".")[-2]))
-    #     print("list_alpha:", list_alpha)
-    #     print("sample:", sample)
-    #     print("list_num_samples:", list_num_samples)
 
-
-    #     for i in range(self.num_classes):
-    #         keys[f"classifiers.{i}.1.weight"] = sum(keys[f"classifiers.{i}.1.weight"])/sample[i]
-    #         keys[f"classifiers.{i}.1.bias"] = sum(keys[f"classifiers.{i}.1.bias"])/sample[i]
-    #     for key in model_target:
-    #         # model_target[key] = model_target[key] / sum(list_alpha)
-    #         if "classifiers" not in key:
-    #             # model_target[key] = model_target[key] / len(other_weights_name)
-    #             keys[key] = sum(keys[key])/sum(list_num_samples)
-    #         model_target[key] = keys[key]
-            
-    #     # temp_models_dir = os.path.abspath(os.path.join(__dir__, "../temp_models"))
-    #     # os.makedirs(temp_models_dir, exist_ok=True)
-
-    #     # torch.save(model_target, os.path.join(temp_models_dir, "global.ptl"))
-    #     return model_target
-    def aggregate_2(self) -> NDArrays:
+    def aggregate(self) -> NDArrays:
         target_weight = torch.load("../../temp_models/{}.ptl".format(self.dataset))
         other_weights_name = [f for f in os.listdir("../../temp_models") if os.path.isfile(os.path.join("../../temp_models", f))]
         model_target = target_weight.state_dict()
@@ -131,27 +71,16 @@ class Client(flwr.client.NumPyClient):
                 list_alpha.append(1)
                 print(f"Data: {self.dataset} - {self.calculate_num_samples(self.dataset)}")
                 list_num_samples.append(self.calculate_num_samples(self.dataset))
-                # for i in range(self.num_classes):
-                #     print(f"Data: {self.dataset} - {self.num_samples_class(self.dataset, i)}")
-                #     keys[f"classifiers.{i}.1.weight"].append(model_target[f"classifiers.{i}.1.weight"] * self.num_samples_class(self.dataset, i)) 
-                #     keys[f"classifiers.{i}.1.bias"].append(model_target[f"classifiers.{i}.1.bias"] * self.num_samples_class(self.dataset, i)) 
-                #     sample[i] += self.num_samples_class(self.dataset, i)
                 
                 for k in model_target:
                     if "classifiers" not in k:
                         keys[k].append(model_target[k] * self.calculate_num_samples(self.dataset))
             else:
-                # print(f"Data: {weight_name.split(".")[-2]} - {self.calculate_num_samples(weight_name.split(".")[-2])}")
                 list_num_samples.append(self.calculate_num_samples(weight_name.split(".")[-2]))
                 alpha = self.calculate_alpha(weight_name.split(".")[-2], self.dataset)
                 list_alpha.append(alpha)
                 model_source = torch.load("../../temp_models/{}".format(weight_name)).state_dict()
-                # for i in range(self.num_classes):
-                #     # print(f"Data: {weight_name.split(".")[-2]} - {self.num_samples_class(weight_name.split(".")[-2], i)}")
-                #     keys[f"classifiers.{i}.1.weight"].append(model_source[f"classifiers.{i}.1.weight"] * self.num_samples_class(weight_name.split(".")[-2], i)) 
-                #     keys[f"classifiers.{i}.1.bias"].append(model_source[f"classifiers.{i}.1.bias"] * self.num_samples_class(weight_name.split(".")[-2], i)) 
-                #     sample[i] += self.num_samples_class(weight_name.split(".")[-2], i)
-                            # model_target[key] = model_target[key] + model_source[key] * alpha
+
                 for key in model_target:
                     if "classifiers" not in key:
                         # model_target[key] = model_target[key] + model_source[key]
@@ -160,21 +89,12 @@ class Client(flwr.client.NumPyClient):
         print("sample:", sample)
         print("list_num_samples:", list_num_samples)
 
-
-        # for i in range(self.num_classes):
-        #     keys[f"classifiers.{i}.1.weight"] = model_target[f"classifiers.{i}.1.weight"]
-        #     keys[f"classifiers.{i}.1.bias"] = model_target[f"classifiers.{i}.1.bias"]
         for key in model_target:
-            # model_target[key] = model_target[key] / sum(list_alpha)
             if "classifiers" not in key:
                 # model_target[key] = model_target[key] / len(other_weights_name)
                 keys[key] = sum(keys[key])/sum(list_num_samples)
                 model_target[key] = keys[key]
-            
-        # temp_models_dir = os.path.abspath(os.path.join(__dir__, "../temp_models"))
-        # os.makedirs(temp_models_dir, exist_ok=True)
 
-        # torch.save(model_target, os.path.join(temp_models_dir, "global.ptl"))
         return model_target
 
     def get_parameters(self, 
@@ -193,40 +113,13 @@ class Client(flwr.client.NumPyClient):
                 strict = False, 
             )
         else:
-            self.client_model.load_state_dict(self.aggregate_2())
-            
-            # server_model = copy.deepcopy(self.client_model)
-            # server_model.load_state_dict(self.aggregate())
-            # client_model = torch.load("../../temp_models/{}.ptl".format(self.dataset))
-            # # client_results = server_val_fn(
-            # #     self.fit_loaders,
-            # #     client_model,
-            # #     device = torch.device("cuda"), 
-            # # )
-            
-            # server_results = server_val_fn(
-            #     self.fit_loaders,
-            #     server_model,
-            #     device = torch.device("cuda"), 
-            # )
-            # server_evaluate = server_results["evaluate_f1"] 
-            # print(f"client: {self.evaluate_f1}, server:{server_evaluate}")
-            
-            # if server_results["evaluate_f1"] > self.evaluate_f1:
-            #     # self.client_model = copy.deepcopy(server_model)
-            #     self.client_model.load_state_dict(server_model.state_dict())
-            # else:
-            #     # self.client_model = copy.deepcopy(client_model)
-            #     self.client_model.load_state_dict(client_model.state_dict())
+            self.client_model.load_state_dict(self.aggregate())
+
 
     def fit(self, 
         parameters, config, 
     ):
-        # keys = [key for key in self.client_model.state_dict().keys()]
-        # self.client_model.load_state_dict(
-        #     collections.OrderedDict({key:torch.tensor(value) for key, value in zip(keys, parameters)}), 
-        #     strict = False, 
-        # )
+
         self.set_parameters(parameters)
 
         self.lr_scheduler.step()
