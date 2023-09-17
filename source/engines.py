@@ -8,10 +8,12 @@ def client_fit_fn(
     client_model, 
     client_optim, 
     dataset,
+    global_model,
     device = torch.device("cpu"), 
 ):
     print("\nStart Client Fitting ...\n" + " = "*16)
     client_model = client_model.to(device)
+    global_model = global_model.to(device)
 
     for epoch in range(1, num_epochs + 1):
         print("epoch {}/{}".format(epoch, num_epochs) + "\n" + " - "*16)
@@ -19,8 +21,17 @@ def client_fit_fn(
         for ecgs, tgts in tqdm.tqdm(fit_loaders["fit"]):
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
-            logits = client_model(ecgs)
-            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
+            # logits = client_model(ecgs)
+            classification_output, regression_output = client_model(ecgs)
+
+            # Calculate classification loss (e.g., cross-entropy loss)
+            classification_loss = sum([F.binary_cross_entropy_with_logits(classification_output[:, i], tgts[:, i]) for i in range(30)])
+
+            regression_loss = F.mse_loss(regression_output, global_model(ecgs))
+ 
+            # loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
+
+            loss = classification_loss + regression_loss
 
             loss.backward()
             client_optim.step(), client_optim.zero_grad()
@@ -32,11 +43,11 @@ def client_fit_fn(
         for ecgs, tgts in tqdm.tqdm(fit_loaders["evaluate"]):
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
-            logits = client_model(ecgs)
-            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
+            classification_output, regression_output = client_model(ecgs)
+            classification_loss = sum([F.binary_cross_entropy_with_logits(classification_output[:, i], tgts[:, i]) for i in range(30)])
 
-            running_loss = running_loss + loss.item()*ecgs.size(0)
-            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() > 0.5, 1.0, 0.0))
+            running_loss = running_loss + classification_loss.item()*ecgs.size(0)
+            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(classification_output).detach().cpu().numpy() > 0.5, 1.0, 0.0))
             running_tgts.extend(tgts), running_predis.extend(predis), 
 
     evaluate_loss, evaluate_f1 = running_loss/len(fit_loaders["evaluate"].dataset), metrics.f1_score(
@@ -73,11 +84,11 @@ def client_test_fn(
         for ecgs, tgts in tqdm.tqdm(test_loaders["test"]):
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
-            logits = client_model(ecgs)
-            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
+            classification_output, regression_output = client_model(ecgs)
+            classification_loss = sum([F.binary_cross_entropy_with_logits(classification_output[:, i], tgts[:, i]) for i in range(30)])
 
-            running_loss = running_loss + loss.item()*ecgs.size(0)
-            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() > 0.5, 1.0, 0.0))
+            running_loss = running_loss + classification_loss.item()*ecgs.size(0)
+            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(classification_output).detach().cpu().numpy() > 0.5, 1.0, 0.0))
             running_tgts.extend(tgts), running_predis.extend(predis), 
 
     test_loss, test_f1 = running_loss/len(test_loaders["test"].dataset), metrics.f1_score(
@@ -91,32 +102,4 @@ def client_test_fn(
     print("\nFinish Client Testing ...\n" + " = "*16)
     return {
         "test_loss":test_loss, "test_f1":test_f1
-    }
-    
-def server_val_fn(
-    fit_loaders, 
-    server_model, 
-    device = torch.device("cpu"), 
-):
-    server_model = server_model.to(device)
-    with torch.no_grad():
-        server_model.eval()
-        running_loss = 0.0
-        running_tgts, running_predis,  = [], [], 
-        for ecgs, tgts in tqdm.tqdm(fit_loaders["evaluate"]):
-            ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
-
-            logits = server_model(ecgs)
-            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
-
-            running_loss = running_loss + loss.item()*ecgs.size(0)
-            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() > 0.5, 1.0, 0.0))
-            running_tgts.extend(tgts), running_predis.extend(predis), 
-
-    evaluate_loss, evaluate_f1 = running_loss/len(fit_loaders["evaluate"].dataset), metrics.f1_score(
-        running_tgts, running_predis, 
-        average = "macro", 
-    )
-    return {
-        "evaluate_loss":evaluate_loss, "evaluate_f1":evaluate_f1
     }

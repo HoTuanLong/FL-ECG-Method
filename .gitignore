@@ -4,3 +4,5 @@
 **/*.zip
 
 **/__pycache__
+*.txt
+/source/runs/*.ipynb
