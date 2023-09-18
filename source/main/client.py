@@ -43,13 +43,13 @@ class Client(flwr.client.NumPyClient):
         )
 
         self.lr_scheduler.step()
-        results = client_fit_fn(
+        metrics = client_fit_fn(
             self.fit_loaders, self.num_epochs, 
             self.client_model, 
             self.client_optim, 
             device = torch.device("cuda"), 
         )
-        evaluate_loss, evaluate_f1 = results["evaluate_loss"], results["evaluate_f1"]
+        evaluate_loss, evaluate_f1 = metrics["evaluate_loss"], metrics["evaluate_f1"]
         if evaluate_f1 > self.evaluate_f1:
             torch.save(
                 self.client_model, 
@@ -57,7 +57,7 @@ class Client(flwr.client.NumPyClient):
             )
             self.evaluate_f1 = evaluate_f1
 
-        return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), results
+        return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), metrics
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

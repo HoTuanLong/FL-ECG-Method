@@ -47,7 +47,7 @@ if __name__ == "__main__":
             "../../ckps/{}/{}/client-best.ptl".format(args.dataset, args.subdataset), 
             map_location = "cpu", 
         )
-        results = client_test_fn(
+        metrics = client_test_fn(
             test_loaders, 
             client_model, 
             device = torch.device("cuda"), 

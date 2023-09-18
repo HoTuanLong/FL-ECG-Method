@@ -13,5 +13,5 @@ import torch.nn.functional as F
 import sklearn.metrics as metrics
 import flwr
 import collections
-import copy
+import functools
 import tqdm
