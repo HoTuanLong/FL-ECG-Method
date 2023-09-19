@@ -1,4 +1,4 @@
-import os, sys
+import os, sysevaluate_f1
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(__dir__), sys.path.append(os.path.abspath(os.path.join(__dir__, "..")))
 from libs import *
@@ -8,12 +8,10 @@ def client_fit_fn(
     client_model, 
     client_optim, 
     dataset,
-    global_model,
     device = torch.device("cpu"), 
 ):
     print("\nStart Client Fitting ...\n" + " = "*16)
     client_model = client_model.to(device)
-    global_model = global_model.to(device)
 
     for epoch in range(1, num_epochs + 1):
         print("epoch {}/{}".format(epoch, num_epochs) + "\n" + " - "*16)
@@ -21,17 +19,8 @@ def client_fit_fn(
         for ecgs, tgts in tqdm.tqdm(fit_loaders["fit"]):
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
-            # logits = client_model(ecgs)
-            classification_output, regression_output = client_model(ecgs)
-
-            # Calculate classification loss (e.g., cross-entropy loss)
-            classification_loss = sum([F.binary_cross_entropy_with_logits(classification_output[:, i], tgts[:, i]) for i in range(30)])
-
-            regression_loss = F.mse_loss(regression_output, global_model(ecgs))
- 
-            # loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
-
-            loss = classification_loss + regression_loss
+            logits = client_model(ecgs)
+            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
 
             loss.backward()
             client_optim.step(), client_optim.zero_grad()
@@ -43,11 +32,11 @@ def client_fit_fn(
         for ecgs, tgts in tqdm.tqdm(fit_loaders["evaluate"]):
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
-            classification_output, regression_output = client_model(ecgs)
-            classification_loss = sum([F.binary_cross_entropy_with_logits(classification_output[:, i], tgts[:, i]) for i in range(30)])
+            logits = client_model(ecgs)
+            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
 
-            running_loss = running_loss + classification_loss.item()*ecgs.size(0)
-            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(classification_output).detach().cpu().numpy() > 0.5, 1.0, 0.0))
+            running_loss = running_loss + loss.item()*ecgs.size(0)
+            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() > 0.5, 1.0, 0.0))
             running_tgts.extend(tgts), running_predis.extend(predis), 
 
     evaluate_loss, evaluate_f1 = running_loss/len(fit_loaders["evaluate"].dataset), metrics.f1_score(
@@ -61,7 +50,7 @@ def client_fit_fn(
     torch.save(client_model, os.path.join(temp_models_dir, "{}.ptl".format(dataset)))
     
     print("{:<8} - loss:{:.4f}, f1:{:.4f}".format("evaluate", 
-        evaluate_loss, evaluate_f1
+        evaluate_loss, 
     ))
 
     print("\nFinish Client Fitting ...\n" + " = "*16)
@@ -84,11 +73,11 @@ def client_test_fn(
         for ecgs, tgts in tqdm.tqdm(test_loaders["test"]):
             ecgs, tgts = ecgs.float().to(device), tgts.float().to(device)
 
-            classification_output, regression_output = client_model(ecgs)
-            classification_loss = sum([F.binary_cross_entropy_with_logits(classification_output[:, i], tgts[:, i]) for i in range(30)])
+            logits = client_model(ecgs)
+            loss = sum([F.binary_cross_entropy_with_logits(logits[:, i], tgts[:, i]) for i in range(30)])
 
-            running_loss = running_loss + classification_loss.item()*ecgs.size(0)
-            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(classification_output).detach().cpu().numpy() > 0.5, 1.0, 0.0))
+            running_loss = running_loss + loss.item()*ecgs.size(0)
+            tgts, predis = list(tgts.data.cpu().numpy()), list(np.where(torch.sigmoid(logits).detach().cpu().numpy() > 0.5, 1.0, 0.0))
             running_tgts.extend(tgts), running_predis.extend(predis), 
 
     test_loss, test_f1 = running_loss/len(test_loaders["test"].dataset), metrics.f1_score(

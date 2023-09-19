@@ -1,4 +1,4 @@
-/datasets
+/datasets/PhysioNet/*/ecgs/*
 **/*.pt*
 **/*.out
 **/*.zip
@@ -6,3 +6,4 @@
 **/__pycache__
 *.txt
 /source/runs/*.ipynb
+/source/main/wandb/

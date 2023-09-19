@@ -5,7 +5,7 @@ from libs import *
 
 from strategies import *
 from data import ECGDataset
-from models.models import ResNet18, ServerModel
+from models.models import ResNet18
 from engines import client_fit_fn
 
 class Client(flwr.client.NumPyClient):
@@ -24,7 +24,6 @@ class Client(flwr.client.NumPyClient):
         self.dataset = dataset
         self.num_classes = num_classes
         self.round = 1
-        self.server_model = ServerModel(num_classes = 30)
 
         self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
             client_optim, 
@@ -62,24 +61,22 @@ class Client(flwr.client.NumPyClient):
         target_weight = torch.load("../../temp_models/{}.ptl".format(self.dataset))
         other_weights_name = [f for f in os.listdir("../../temp_models") if os.path.isfile(os.path.join("../../temp_models", f))]
         model_target = target_weight.state_dict()
-        server_model = self.server_model.state_dict()
         keys = {key: [] for key in model_target}
-        
             
-        list_num_samples = []
+        # list_num_samples = []
         sample = {i: 0 for i in range(self.num_classes)}        
         list_alpha = []
         for weight_name in other_weights_name:
             if weight_name.split(".")[-2] == self.dataset:
                 list_alpha.append(1)
                 print(f"Data: {self.dataset} - {self.calculate_num_samples(self.dataset)}")
-                list_num_samples.append(self.calculate_num_samples(self.dataset))
+                # list_num_samples.append(self.calculate_num_samples(self.dataset))
                 
                 for k in model_target:
                     if "classifiers" not in k:
-                        keys[k].append(model_target[k] * self.calculate_num_samples(self.dataset))
+                        keys[k].append(model_target[k])
             else:
-                list_num_samples.append(self.calculate_num_samples(weight_name.split(".")[-2]))
+                # list_num_samples.append(self.calculate_num_samples(weight_name.split(".")[-2]))
                 alpha = self.calculate_alpha(weight_name.split(".")[-2], self.dataset)
                 list_alpha.append(alpha)
                 model_source = torch.load("../../temp_models/{}".format(weight_name)).state_dict()
@@ -87,18 +84,18 @@ class Client(flwr.client.NumPyClient):
                 for key in model_target:
                     if "classifiers" not in key:
                         # model_target[key] = model_target[key] + model_source[key]
-                        keys[key].append(model_source[key] * self.calculate_num_samples(weight_name.split(".")[-2]))
+                        # keys[key].append(model_source[key] * self.calculate_num_samples(weight_name.split(".")[-2]))
+                        keys[key].append(model_source[key] * alpha)
         print("list_alpha:", list_alpha)
         print("sample:", sample)
-        print("list_num_samples:", list_num_samples)
+        # print("list_num_samples:", list_num_samples)
 
         for key in model_target:
             if "classifiers" not in key:
                 # model_target[key] = model_target[key] / len(other_weights_name)
-                keys[key] = sum(keys[key])/sum(list_num_samples)
+                keys[key] = sum(keys[key])/sum(list_alpha)
                 model_target[key] = keys[key]
-                server_model[key] = keys[key]
-        self.server_model.load_state_dict(server_model)
+
         return model_target
 
     def get_parameters(self, 
@@ -132,7 +129,6 @@ class Client(flwr.client.NumPyClient):
             self.client_model, 
             self.client_optim, 
             self.dataset,
-            self.server_model,
             device = torch.device("cuda"), 
         )
         
@@ -148,10 +144,10 @@ class Client(flwr.client.NumPyClient):
         #     {"fit_loss":results["fit_loss"], "fit_f1":results["fit_f1"]}, 
         #     step = self.round, 
         # )
-        # wandb.log(
-        #     {"evaluate_loss":results["evaluate_loss"], "evaluate_f1":results["evaluate_f1"]}, 
-        #     step = self.round, 
-        # )
+        wandb.log(
+            {"evaluate_loss":results["evaluate_loss"], "evaluate_f1":results["evaluate_f1"]}, 
+            step = self.round, 
+        )
         self.round += 1
         return self.get_parameters({}), len(self.fit_loaders["fit"].dataset), results
 
@@ -163,7 +159,17 @@ if __name__ == "__main__":
     parser.add_argument("--num_clients", type = int, default = 4)
     parser.add_argument("--num_rounds", type = int, default = 500)
     parser.add_argument("--num_epochs", type = int, default = 1)
+    parser.add_argument("--wandb_key", type = str, default = "258ef894d4067010995a4d5afc371a67fd185a7b")
+    parser.add_argument("--wandb_entity", type = str, default = "longht")
     args = parser.parse_args()
+    
+    wandb.login(key = args.wandb_key)
+    wandb.init(
+        entity = args.wandb_entity, 
+        project = "[fl-ecg] federated", 
+        name = f"{args.subdataset} - keep_classifier_cosine", 
+        mode = "offline"
+    )
 
     fit_loaders = {
         "fit":torch.utils.data.DataLoader(
@@ -205,3 +211,4 @@ if __name__ == "__main__":
         server_address = "{}:{}".format(args.server_address, args.server_port), 
         client = client, 
     )
+1

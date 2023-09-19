@@ -15,4 +15,5 @@ import flwr
 import collections
 import copy
 import tqdm
+import wandb
 from flwr.common import Config, NDArrays, Scalar, parameters_to_ndarrays, ndarrays_to_parameters
