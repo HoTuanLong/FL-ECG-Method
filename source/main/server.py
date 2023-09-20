@@ -22,6 +22,7 @@ if __name__ == "__main__":
         server_model = ResNet18(
             num_classes = 30, 
         )
+        server_model.dataset = args.dataset
         initial_parameters = [value.cpu().numpy() for key, value in server_model.state_dict().items() if "classifiers" not in key]
         initial_parameters = flwr.common.ndarrays_to_parameters(initial_parameters)
         flwr.server.start_server(
