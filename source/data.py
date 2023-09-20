@@ -8,6 +8,8 @@ class ECGDataset(torch.utils.data.Dataset):
         self.df_path, self.data_dir,  = df_path, data_dir, 
         self.df = pd.read_csv(self.df_path)
 
+        self.tgt_lens = self.df.iloc[:, -30:].sum().values.tolist()
+
     def __len__(self, 
     ):
         return len(self.df)

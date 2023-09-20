@@ -41,6 +41,7 @@ class Client(flwr.client.NumPyClient):
             collections.OrderedDict({key:torch.tensor(value) for key, value in zip(keys, parameters)}), 
             strict = False, 
         )
+        self.client_model.tgt_lens = self.fit_loaders["fit"].dataset.tgt_lens
 
         self.lr_scheduler.step()
         metrics = client_fit_fn(
