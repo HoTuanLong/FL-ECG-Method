@@ -36,7 +36,7 @@ class Client(flwr.client.NumPyClient):
     def fit(self, 
         parameters, config, 
     ):
-        keys = [key for key in self.client_model.state_dict().keys()]
+        keys = [key for key in self.client_model.state_dict().keys() if "classifiers" not in key]
         self.client_model.load_state_dict(
             collections.OrderedDict({key:torch.tensor(value) for key, value in zip(keys, parameters)}), 
             strict = False, 
@@ -50,6 +50,10 @@ class Client(flwr.client.NumPyClient):
             device = torch.device("cuda"), 
         )
         evaluate_loss, evaluate_f1 = metrics["evaluate_loss"], metrics["evaluate_f1"]
+        torch.save(
+            self.client_model, 
+            "{}/client-last.ptl".format(self.save_ckp_dir), 
+        )
         if evaluate_f1 > self.evaluate_f1:
             torch.save(
                 self.client_model, 

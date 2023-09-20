@@ -24,7 +24,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
             collections.OrderedDict({key:torch.tensor(value) for key, value in zip(aggregated_keys, aggregated_parameters)}), 
             strict = False, 
         )
-        aggregated_parameters = [value.cpu().numpy() for key, value in self.server_model.state_dict().items()]
+        aggregated_parameters = [value.cpu().numpy() for key, value in self.server_model.state_dict().items() if "classifiers" not in key]
         aggregated_parameters = flwr.common.ndarrays_to_parameters(aggregated_parameters)
 
         return aggregated_parameters, {}
