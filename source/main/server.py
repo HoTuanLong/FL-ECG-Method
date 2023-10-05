@@ -37,7 +37,7 @@ if __name__ == "__main__":
         test_loaders = {
             "test":torch.utils.data.DataLoader(
                 ECGDataset(
-                    df_path = "../../datasets/{}/{}/csvs/test_2.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
+                    df_path = "../../datasets/{}/{}/csvs/test_new.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
                 ), 
                 num_workers = 0, batch_size = 80, 
                 shuffle = True, 
@@ -50,6 +50,7 @@ if __name__ == "__main__":
         results = client_test_fn(
             test_loaders, 
             client_model, 
+            args.num_classes,
             device = torch.device("cuda"), 
         )
 1

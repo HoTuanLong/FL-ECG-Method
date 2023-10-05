@@ -16,7 +16,7 @@ class ECGDataset(torch.utils.data.Dataset):
         index, 
     ):
         row = self.df.iloc[index]
-        tgt = row.values[-30:].astype("float64")
+        tgt = row.values[5:].astype("float64")
 
         ecg = sio.loadmat("{}/{}.mat".format(self.data_dir, row["Id"]))["val"]
         ecg = sequence.pad_sequences(ecg, 5000, "float64", 

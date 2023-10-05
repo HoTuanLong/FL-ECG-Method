@@ -129,6 +129,7 @@ class Client(flwr.client.NumPyClient):
             self.client_model, 
             self.client_optim, 
             self.dataset,
+            self.num_classes,
             device = torch.device("cuda"), 
         )
         
@@ -145,7 +146,8 @@ class Client(flwr.client.NumPyClient):
         #     step = self.round, 
         # )
         wandb.log(
-            {"evaluate_loss":results["evaluate_loss"], "evaluate_f1":results["evaluate_f1"]}, 
+            {"evaluate_loss":results["evaluate_loss"], "evaluate_f1":results["evaluate_f1"],
+            "fit_loss":results["fit_loss"], "fit_f1":results["fit_f1"]}, 
             step = self.round, 
         )
         self.round += 1
@@ -174,21 +176,21 @@ if __name__ == "__main__":
     fit_loaders = {
         "fit":torch.utils.data.DataLoader(
             ECGDataset(
-                df_path = "../../datasets/{}/{}/csvs/fit.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
+                df_path = "../../datasets/{}/{}/csvs/fit_new.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
             ), 
-            num_workers = 0, batch_size = 80, 
+            num_workers = 4, batch_size = 80, 
             shuffle = True, 
         ), 
         "evaluate":torch.utils.data.DataLoader(
             ECGDataset(
-                df_path = "../../datasets/{}/{}/csvs/evaluate.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
+                df_path = "../../datasets/{}/{}/csvs/evaluate_new.csv".format(args.dataset, args.subdataset), data_dir = "../../datasets/{}/{}/ecgs".format(args.dataset, args.subdataset), 
             ), 
-            num_workers = 0, batch_size = 80, 
+            num_workers = 4, batch_size = 80, 
             shuffle = True, 
         ), 
     }
     client_model = ResNet18(
-        num_classes = 30, 
+        num_classes = int(args.num_classes), 
     )
     client_optim = optim.Adam(
         client_model.parameters(), weight_decay = 5e-5, 
