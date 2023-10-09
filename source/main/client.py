@@ -7,7 +7,6 @@ from strategies import *
 from data import ECGDataset
 from models.models import ResNet18
 from engines import client_fit_fn
-
 class Client(flwr.client.NumPyClient):
     def __init__(self, 
         fit_loaders, num_epochs, 
@@ -19,6 +18,7 @@ class Client(flwr.client.NumPyClient):
     ):
         self.fit_loaders, self.num_epochs,  = fit_loaders, num_epochs, 
         self.client_model = client_model
+        self.freeze_model = copy.deepcopy(self.client_model)
         self.client_optim = client_optim
         self.save_ckp_dir = save_ckp_dir
         self.dataset = dataset
@@ -41,6 +41,7 @@ class Client(flwr.client.NumPyClient):
         
         metrics_1 = np.array(metrics_1)
         metrics_2 = np.array(metrics_2)
+        
         cosine = np.dot(metrics_1, metrics_2)/(np.linalg.norm(metrics_1)*np.linalg.norm(metrics_2))
         
         return cosine
@@ -61,24 +62,51 @@ class Client(flwr.client.NumPyClient):
         target_weight = torch.load("../../temp_models/{}.ptl".format(self.dataset))
         other_weights_name = [f for f in os.listdir("../../temp_models") if os.path.isfile(os.path.join("../../temp_models", f))]
         model_target = target_weight.state_dict()
+        original_model = copy.deepcopy(model_target)
         keys = {key: [] for key in model_target}
+        print(keys)
             
         # list_num_samples = []
         sample = {i: 0 for i in range(self.num_classes)}        
         list_alpha = []
+        
+        classifier_layers = []
+        fe_layers = []
+        total_samples = 0
+        for key in model_target:
+            if "classifiers" in key:
+                classifier_layers.append(key)
+            else:
+                fe_layers.append(key)
+        lower_layers = []
+        higher_layers = []
+        p = 0.3
+        count = 0
+        for key in fe_layers:
+            # if "stage_3" in key or "stage_4" in key:
+            if  "stage_2" in key or "stage_3" in key or "stage_4" in key:
+                higher_layers.append(key)
+            else:
+                lower_layers.append(key)
+                
         for weight_name in other_weights_name:
             if weight_name.split(".")[-2] == self.dataset:
-                list_alpha.append(1)
+                # list_alpha.append(1)
                 print(f"Data: {self.dataset} - {self.calculate_num_samples(self.dataset)}")
-                # list_num_samples.append(self.calculate_num_samples(self.dataset))
+                alpha = self.calculate_num_samples(self.dataset)
+                list_alpha.append(alpha)
                 
                 for k in model_target:
-                    if "classifiers" not in k:
-                        keys[k].append(model_target[k])
+                    if "classifiers" not in k and k in lower_layers:
+                        keys[k].append(model_target[k] * alpha)
+                    else:
+                        continue
             else:
                 # list_num_samples.append(self.calculate_num_samples(weight_name.split(".")[-2]))
-                alpha = self.calculate_alpha(weight_name.split(".")[-2], self.dataset)
+                # alpha = self.calculate_alpha(weight_name.split(".")[-2], self.dataset)
+                alpha = self.calculate_num_samples(weight_name.split(".")[-2])
                 list_alpha.append(alpha)
+                total_samples += alpha
                 model_source = torch.load("../../temp_models/{}".format(weight_name)).state_dict()
 
                 for key in model_target:
@@ -86,17 +114,26 @@ class Client(flwr.client.NumPyClient):
                         # model_target[key] = model_target[key] + model_source[key]
                         # keys[key].append(model_source[key] * self.calculate_num_samples(weight_name.split(".")[-2]))
                         keys[key].append(model_source[key] * alpha)
-        print("list_alpha:", list_alpha)
-        print("sample:", sample)
+                
+        # print("list_alpha:", list_alpha)
+        # print("sample:", sample)
         # print("list_num_samples:", list_num_samples)
 
         for key in model_target:
             if "classifiers" not in key:
-                # model_target[key] = model_target[key] / len(other_weights_name)
-                keys[key] = sum(keys[key])/sum(list_alpha)
-                model_target[key] = keys[key]
+                if key in lower_layers:
+                    # model_target[key] = model_target[key] / len(other_weights_name)
+                    keys[key] = sum(keys[key])/sum(list_alpha)
+                    model_target[key] = keys[key]
+                    original_model[key] = keys[key]
+                elif key in higher_layers:
+                    keys[key] = sum(keys[key])/total_samples
+                    model_target[key] = keys[key]
 
-        return model_target
+                    
+        print("list_alpha:", list_alpha)
+        print("total_samples:", total_samples)
+        return model_target, original_model
 
     def get_parameters(self, 
         config, 
@@ -114,7 +151,9 @@ class Client(flwr.client.NumPyClient):
                 strict = False, 
             )
         else:
-            self.client_model.load_state_dict(self.aggregate())
+            target_model, original_model = self.aggregate()
+            self.client_model.load_state_dict(original_model)
+            self.freeze_model.load_state_dict(target_model)
 
 
     def fit(self, 
@@ -127,6 +166,7 @@ class Client(flwr.client.NumPyClient):
         results = client_fit_fn(
             self.fit_loaders, self.num_epochs, 
             self.client_model, 
+            self.freeze_model,
             self.client_optim, 
             self.dataset,
             self.num_classes,

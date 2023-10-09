@@ -70,3 +70,17 @@ class ResNet18(nn.Module):
         ).squeeze(-1)
 
         return output
+    
+    def wo_classifier(self, 
+        input, 
+    ):
+        output = self.stem(input)
+
+        output = self.stage_1(output)
+        output = self.stage_2(output)
+        output = self.stage_3(output)
+        output = self.stage_4(output)
+
+        output = self.pool(output).squeeze(-1)
+
+        return output
