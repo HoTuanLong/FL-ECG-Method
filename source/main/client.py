@@ -14,6 +14,7 @@ class Client(flwr.client.NumPyClient):
         client_model, 
         client_optim, 
         save_ckp_dir, 
+        weight_files,
     ):
         self.fit_loaders, self.num_epochs,  = fit_loaders, num_epochs, 
         self.client_model = client_model
@@ -26,6 +27,7 @@ class Client(flwr.client.NumPyClient):
         )
 
         self.evaluate_loss, self.evaluate_f1 = 0.0, 0.0
+        self.weight_files = weight_files
 
     def get_parameters(self, 
         config, 
@@ -48,6 +50,7 @@ class Client(flwr.client.NumPyClient):
             self.fit_loaders, self.num_epochs, 
             self.client_model, 
             self.client_optim, 
+            self.weight_files,
             device = torch.device("cuda"), 
         )
         evaluate_loss, evaluate_f1 = metrics["evaluate_loss"], metrics["evaluate_f1"]
@@ -107,6 +110,7 @@ if __name__ == "__main__":
         client_model, 
         client_optim, 
         save_ckp_dir, 
+        weight_files = '../weights.csv'
     )
     flwr.client.start_numpy_client(
         server_address = "{}:{}".format(args.server_address, args.server_port), 

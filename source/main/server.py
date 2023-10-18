@@ -51,5 +51,6 @@ if __name__ == "__main__":
         metrics = client_test_fn(
             test_loaders, 
             client_model, 
+            weights_file = '../weights.csv',
             device = torch.device("cuda"), 
         )
